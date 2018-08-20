@@ -26,6 +26,9 @@
  * SUCH DAMAGE.
  */
 
+#include <stdint.h>
+#include <sys/param.h>
+
 #include "private/bionic_time_conversions.h"
 
 #include "private/bionic_constants.h"
@@ -71,4 +74,27 @@ void monotonic_time_from_realtime_time(timespec& monotonic_time, const timespec&
   }
   monotonic_time.tv_sec -= cur_realtime_time.tv_sec;
   monotonic_time.tv_sec += cur_monotonic_time.tv_sec;
+}
+
+void absolute_timespec_from_timespec(timespec& abs_ts, const timespec& ts, clockid_t clock) {
+  clock_gettime(clock, &abs_ts);
+  time_t clock_tv_sec = abs_ts.tv_sec;
+  abs_ts.tv_sec += ts.tv_sec;
+  abs_ts.tv_nsec += ts.tv_nsec;
+  if (abs_ts.tv_nsec >= NS_PER_S) {
+    abs_ts.tv_nsec -= NS_PER_S;
+    abs_ts.tv_sec++;
+  }
+  // With a large relative timespec we might overflow.
+  // Because time_t is arbitrary, we should be fancy handling this.
+  if (abs_ts.tv_sec < clock_tv_sec) {
+    if (sizeof(time_t) == sizeof(int32_t)) {
+      abs_ts.tv_sec = INT32_MAX;
+    } else if (sizeof(time_t) == sizeof(int64_t)) {
+      abs_ts.tv_sec = INT64_MAX;
+    } else {
+      // Just take the largest of the two initial values and hope for the best.
+      abs_ts.tv_sec = MAX(clock_tv_sec, ts.tv_sec);
+    }
+  }
 }

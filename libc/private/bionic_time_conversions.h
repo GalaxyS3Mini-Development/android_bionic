@@ -45,6 +45,9 @@ __LIBC_HIDDEN__ void timeval_from_timespec(timeval& tv, const timespec& ts);
 __LIBC_HIDDEN__ void monotonic_time_from_realtime_time(timespec& monotonic_time,
                                                        const timespec& realtime_time);
 
+__LIBC_HIDDEN__ void absolute_timespec_from_timespec(timespec& abs_ts, const timespec& ts,
+                                                     clockid_t clock);
+
 __END_DECLS
 
 static inline int check_timespec(const timespec* ts, bool null_allowed) {
@@ -61,17 +64,5 @@ static inline int check_timespec(const timespec* ts, bool null_allowed) {
   }
   return 0;
 }
-
-#if !defined(__LP64__)
-static inline void absolute_timespec_from_timespec(timespec& abs_ts, const timespec& ts, clockid_t clock) {
-  clock_gettime(clock, &abs_ts);
-  abs_ts.tv_sec += ts.tv_sec;
-  abs_ts.tv_nsec += ts.tv_nsec;
-  if (abs_ts.tv_nsec >= NS_PER_S) {
-    abs_ts.tv_nsec -= NS_PER_S;
-    abs_ts.tv_sec++;
-  }
-}
-#endif
 
 #endif
